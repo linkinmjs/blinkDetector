@@ -4,11 +4,16 @@ import dlib
 from board.board import show_board
 from util.debug_helper import show_helper, reset_max_values
 from math import hypot
+import time
 
 
 # constants
 font = cv2.FONT_HERSHEY_PLAIN
 umbral = 4.8    # this is a configurable param
+rows = 4
+columns = 10
+current_row = 0
+last_update_time = time.time()
 
 cap = cv2.VideoCapture(0)
 
@@ -57,7 +62,12 @@ while True:
         left_eye_ratio = get_blinking_ratio([42, 43, 44, 45, 46, 47], landmarks)
         blinking_ratio = (left_eye_ratio + right_eye_ratio) / 2
 
-        show_board(4, 10)
+        # Verifica si ha pasado un segundo
+        if time.time() - last_update_time > 1:
+            current_row = (current_row + 1) % rows
+            last_update_time = time.time()
+
+        show_board(rows, columns, current_row)
         show_helper(left_eye_ratio, right_eye_ratio, blinking_ratio)
 
         if blinking_ratio > 4.8:
