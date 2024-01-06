@@ -6,16 +6,26 @@ from util.debug_helper import show_helper, reset_max_values
 from math import hypot
 import time
 
-
-# constants
+# constants and vars
 font = cv2.FONT_HERSHEY_PLAIN
 umbral = 4.8    # this is a configurable param
 rows = 4
 columns = 10
-current_row = 0
 last_update_time = time.time()
 
-cap = cv2.VideoCapture(0)
+# board vars
+characters = [
+"A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
+"K", "L", "M", "N", "O", "P", "Q", "R", "S", "T",
+"U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3",
+"4", "5", "6", "7", "8", "9", " "
+]
+phrase = ""  # Phrase string
+selecting_column = False
+current_row = 0
+current_column = 0
+
+cap = cv2.VideoCapture(1)
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
@@ -53,8 +63,8 @@ while True:
         x, y = face.left(), face.top()
         x1, y1 = face.right(), face.bottom()
         
-        cv2.rectangle(frame, (x,y), (x1, y1), (0, 255, 0), 2)
-
+        # Uncomment next line to show face rectangle
+        # cv2.rectangle(frame, (x,y), (x1, y1), (0, 255, 0), 2)
 
         landmarks = predictor(gray, face)
 
@@ -62,20 +72,42 @@ while True:
         left_eye_ratio = get_blinking_ratio([42, 43, 44, 45, 46, 47], landmarks)
         blinking_ratio = (left_eye_ratio + right_eye_ratio) / 2
 
-        # Verifica si ha pasado un segundo
+        # check second after second
         if time.time() - last_update_time > 1:
-            current_row = (current_row + 1) % rows
+            if not selecting_column:
+                current_row = (current_row + 1) % rows
+            else:
+                current_column = (current_column + 1) % columns
             last_update_time = time.time()
 
-        show_board(rows, columns, current_row)
-        show_helper(left_eye_ratio, right_eye_ratio, blinking_ratio)
-
-        if blinking_ratio > 4.8:
+        if blinking_ratio > umbral:
+            # Blinking message
             cv2.putText(frame, "BLINKING", (50, 150), font, 7, (255, 0, 0))
-
-
+            
+            if not selecting_column:
+                # freeze row and start with column
+                selecting_column = True
+                time.sleep(1)
+            else:
+                # select letter
+                selected_letter = characters[current_row * columns + current_column]
+                phrase += selected_letter
+                print("Letra seleccionada:", selected_letter)
+                
+                # reset
+                selecting_column = False
+                current_row = 0
+                current_column = 0
+                time.sleep(1)
+        
+        
+        show_board(characters, rows, columns, current_row, current_column, selecting_column)
+        show_helper(left_eye_ratio, right_eye_ratio, blinking_ratio)
+        
+        
     cv2.imshow("Frame", frame)
 
+    # actions by keys
     key = cv2.waitKey(1)
     if key == ord('r') or key == ord('R'):
         reset_max_values()
