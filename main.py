@@ -11,6 +11,7 @@ font = cv2.FONT_HERSHEY_PLAIN
 umbral = 4.8    # this is a configurable param
 rows = 4
 columns = 10
+velocity = 0.8 # velocity for select letters
 last_update_time = time.time()
 
 # board vars
@@ -18,14 +19,14 @@ characters = [
 "A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
 "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T",
 "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3",
-"4", "5", "6", "7", "8", "9", " "
+"4", "5", "6", "7", "8", "9", " ", " ", " ", " "
 ]
 phrase = ""  # Phrase string
 selecting_column = False
 current_row = 0
 current_column = 0
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
@@ -52,7 +53,6 @@ def get_blinking_ratio(eye_points, facial_landmarks):
     return ratio
 
 
-
 while True:
     _, frame = cap.read()
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -73,7 +73,7 @@ while True:
         blinking_ratio = (left_eye_ratio + right_eye_ratio) / 2
 
         # check second after second
-        if time.time() - last_update_time > 1:
+        if time.time() - last_update_time > velocity:
             if not selecting_column:
                 current_row = (current_row + 1) % rows
             else:
@@ -82,7 +82,7 @@ while True:
 
         if blinking_ratio > umbral:
             # Blinking message
-            cv2.putText(frame, "BLINKING", (50, 150), font, 7, (255, 0, 0))
+            cv2.putText(frame, "BLINK", (50, 150), font, 7, (255, 0, 0))
             
             if not selecting_column:
                 # freeze row and start with column
@@ -92,7 +92,7 @@ while True:
                 # select letter
                 selected_letter = characters[current_row * columns + current_column]
                 phrase += selected_letter
-                print("Letra seleccionada:", selected_letter)
+                print(phrase)
                 
                 # reset
                 selecting_column = False
@@ -111,7 +111,7 @@ while True:
     key = cv2.waitKey(1)
     if key == ord('r') or key == ord('R'):
         reset_max_values()
-    elif key == 27:  # Tecla ESC para salir
+    elif key == 27:  # ESC key for close app
         break
 
 cap.release()
